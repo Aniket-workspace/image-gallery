@@ -1,5 +1,13 @@
 import React from "react";
-import { Card, CardMedia, CardContent, Box, IconButton } from "@mui/material";
+import {
+  Card,
+  CardMedia,
+  CardContent,
+  ImageList,
+  ImageListItem,
+  Box,
+  IconButton,
+} from "@mui/material";
 import { Favorite, FavoriteBorder } from "@mui/icons-material";
 
 const ImageCard = ({ image, onClick, onFavorite, isFavorite }) => {
@@ -8,12 +16,11 @@ const ImageCard = ({ image, onClick, onFavorite, isFavorite }) => {
     onFavorite(image); // Trigger the favorite/unfavorite action
   };
 
-  return (<Box m={2}>
-    <Card
+  return (
+    <ImageListItem
+      key={image.img}
       sx={{
         position: "relative",
-        overflow: "hidden",
-        borderRadius: "8px",
         "&:hover": {
           "& .image-overlay": {
             opacity: 0.6,
@@ -23,24 +30,13 @@ const ImageCard = ({ image, onClick, onFavorite, isFavorite }) => {
           },
         },
       }}
-      onClick={() => onClick(image)}
     >
-      {/* Image with lazy loading */}
-      <CardMedia
-        component="img"
-        height="200"
-        image={image.urls.small}
-        alt={image.alt_description || "Image"}
-        sx={{
-          transition: "transform 0.3s ease-in-out",
-          "&:hover": {
-            transform: "scale(1.05)",
-          },
-        }}
-        loading="lazy" // Native lazy loading
+      <img
+        srcSet={`${image.urls.small}?w=248&fit=crop&auto=format&dpr=2 2x`}
+        src={`${image.urls.small}?w=248&fit=crop&auto=format`}
+        alt={image.alt_description}
+        loading="lazy"
       />
-
-      {/* Dark overlay on image */}
       <Box
         className="image-overlay"
         sx={{
@@ -49,14 +45,13 @@ const ImageCard = ({ image, onClick, onFavorite, isFavorite }) => {
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.4)",
+          backgroundColor: "rgba(0, 0, 0, 1)",
           opacity: 0,
           transition: "opacity 0.3s ease-in-out",
           zIndex: 5,
         }}
       ></Box>
 
-      {/* Username on Hover */}
       <Box
         className="username"
         sx={{
@@ -69,25 +64,27 @@ const ImageCard = ({ image, onClick, onFavorite, isFavorite }) => {
           fontSize: "18px",
           opacity: 0,
           transition: "opacity 0.3s ease-in-out",
+          zIndex: 20,
         }}
       >
         {image.user.name}
       </Box>
-
-      {/* Favorite Button */}
-      <CardContent
+      <IconButton
         sx={{
+          zIndex: 30,
           position: "absolute",
           bottom: 0,
           right: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
         }}
+        onClick={handleFavoriteClick}
       >
-        <IconButton sx={{ zIndex: 10 }} onClick={handleFavoriteClick}>
-          {isFavorite ? <Favorite sx={{ color: "red" }} /> : <FavoriteBorder sx={{ color: "white" }} />}
-        </IconButton>
-      </CardContent>
-    </Card></Box>
+        {isFavorite ? (
+          <Favorite sx={{ color: "red" }} />
+        ) : (
+          <FavoriteBorder sx={{ color: "white" }} />
+        )}
+      </IconButton>
+    </ImageListItem>
   );
 };
 

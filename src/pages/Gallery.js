@@ -1,46 +1,82 @@
-import React, { useState, useEffect } from "react";
-import { Box, CircularProgress, Grid, Typography } from "@mui/material";
-import { fetchImages } from "../Api/api";
+import React, { useState, useEffect, useCallback } from "react";
+import { Box, CircularProgress, ImageList, Typography } from "@mui/material";
 import ImageCard from "../components/ImageCard";
 import ImageModal from "../components/ImageModal";
 import SearchBar from "../components/SearchBar";
 import Navbar from "../components/Navbar";
+import { fetchBaseImages, fetchImages } from "../Api/api";
 
 const Gallery = () => {
-  const [images, setImages] = useState([]); 
+  const [images, setImages] = useState([]);
   const [favorites, setFavorites] = useState(
     JSON.parse(localStorage.getItem("favorites")) || []
   );
-  const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1); 
-  const [loading, setLoading] = useState(false); 
-  const [hasMore, setHasMore] = useState(true); 
-  const [selectedImage, setSelectedImage] = useState(null); 
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState(""); // Added to track search query
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  // fetch images 
-  const fetchAndSetImages = async () => {
-    setLoading(true); 
-    try {
-      console.log(`Fetching images for query: "${query}" (Page: ${page})`);
-      const fetchedImages = await fetchImages(page, query);
+  // Fetch images
+  const fetchAndSetImages = useCallback(
+    async (reset = false) => {
+      if (loading) return;
+      setLoading(true);
 
-      if (Array.isArray(fetchedImages)) {
-        if (query) {
-          setImages(fetchedImages);
+      try {
+        const fetchedImages = await fetchImages(page, query);
+
+        if (Array.isArray(fetchedImages)) {
+          // if (query) {
+
+          setImages((prevImages) => {
+            const allImages = reset
+              ? fetchedImages
+              : [...prevImages, ...fetchedImages];
+
+            // Remove duplicates based on `id`
+            const uniqueImages = Array.from(
+              new Map(allImages.map((img) => [img.id, img])).values()
+            );
+
+            return uniqueImages;
+          });
+          setHasMore(fetchedImages.length > 0);
         } else {
-          setImages((prevImages) => [...prevImages, ...fetchedImages]);
+          console.error("Fetched data is not an array:", fetchedImages);
+          setImages(reset ? [] : []);
         }
-        setHasMore(fetchedImages.length > 0);
-      } else {
-        console.error("Fetched data is not an array:", fetchedImages);
-        setImages([]);
+        if (Array.isArray(fetchedImages)) {
+          if (query) {
+            setImages(fetchedImages);
+          } else {
+            setImages((prevImages) => {
+              const allImages = reset
+                ? fetchedImages
+                : [...prevImages, ...fetchedImages];
+  
+              // Remove duplicates based on `id`
+              const uniqueImages = Array.from(
+                new Map(allImages.map((img) => [img.id, img])).values()
+              );
+  
+              return uniqueImages;
+          })
+          }
+          setHasMore(fetchedImages.length > 0);
+        } else {
+          console.error("Fetched data is not an array:", fetchedImages);
+          setImages(reset ? [] : []);
+        }
+      } catch (error) {
+        console.error("Error fetching images:", error);
+        setImages(reset ? [] : []);
       }
-    } catch (error) {
-      console.error("Error fetching images:", error);
-      setImages([]); 
-    }
-    setLoading(false); 
-  };
+
+      setLoading(false);
+    },
+    [page, query, loading]
+  );
 
   useEffect(() => {
     fetchAndSetImages();
@@ -60,15 +96,15 @@ const Gallery = () => {
     setSelectedImage(image);
   };
 
-  //  search query 
+  // Search query
   const handleSearch = (newQuery) => {
-    console.log(`Search query changed to: "${newQuery}"`);
-    setQuery(newQuery); 
-    setImages([]);
-    setPage(1); 
+    if (newQuery === query) return; // Avoid redundant search calls
+    setQuery(newQuery);
+    setPage(1);
+    setImages([]); // Reset images to show fresh results
   };
 
-  // Infinite scroll 
+  // Infinite scroll
   const handleScroll = (event) => {
     const bottom =
       event.target.scrollHeight ===
@@ -81,26 +117,20 @@ const Gallery = () => {
 
   return (
     <>
-    {/* navbar */}
+      {/* Navbar */}
       <Navbar>
-
-        {/* searchbar */}
         <SearchBar onSearch={handleSearch} />
       </Navbar>
 
-      {/* main container */}
+      {/* Main container */}
       <div>
         <Box>
-
-          {/* {images.length === 0 && !loading && !query && (
-            <Typography>Loading default images...</Typography> 
-          )} */}
-
-          {/* if no result */}
-          {images.length === 0 && !loading && query && (
-            <Typography>No results found</Typography> 
+          {/* No results */}
+          {images.length === 0 && !loading && (
+            <Typography>No results found</Typography>
           )}
 
+          {/* Image List */}
           <Box
             sx={{
               display: "flex",
@@ -110,24 +140,22 @@ const Gallery = () => {
               overflowY: "auto",
               maxHeight: "calc(100vh - 80px)",
             }}
-            onScroll={handleScroll} 
+            onScroll={handleScroll}
           >
-            {/* image card */}
-            <Grid container spacing={2} sx={{ flexGrow: 1 }}>
+            <ImageList variant="masonry" cols={4} gap={8}>
               {Array.isArray(images) &&
-                images.map((image) => (
-                  <Grid item xs={12} sm={6} md={4} key={image.id}>
-                    <ImageCard
-                      image={image}
-                      onClick={handleImageClick}
-                      onFavorite={handleFavorite}
-                      isFavorite={favorites.some((fav) => fav.id === image.id)}
-                    />
-                  </Grid>
+                images.map((image, index) => (
+                  <ImageCard
+                    key={`${image.id}-${index}`} // Fallback to `index` if needed
+                    image={image}
+                    onClick={handleImageClick}
+                    onFavorite={handleFavorite}
+                    isFavorite={favorites.some((fav) => fav.id === image.id)}
+                  />
                 ))}
-            </Grid>
+            </ImageList>
 
-           {/* loading spinner */}
+            {/* Loading spinner */}
             {loading && (
               <Box
                 sx={{
@@ -143,7 +171,7 @@ const Gallery = () => {
           </Box>
         </Box>
 
-        {/* image model */}
+        {/* Image Modal */}
         <ImageModal
           image={selectedImage}
           open={!!selectedImage}

@@ -15,9 +15,14 @@ export const fetchImages = async (page = 1, query = '') => {
 
   try {
     const { data } = await axios.get(url, { params });
+    console.log(data)
+
     return query ? data.results || [] : data || [];
+
   } catch (error) {
     console.error('Error fetching data from Unsplash:', error);
     return [];  
   }
 };
+
+

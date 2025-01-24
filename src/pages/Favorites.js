@@ -8,6 +8,7 @@ import {
   IconButton,
   AppBar,
   Toolbar,
+  ImageList,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import ImageCard from "../components/ImageCard";
@@ -24,18 +25,21 @@ const Favorites = () => {
     setFavorites(storedFavorites);
   }, []);
 
-  // remove image from favorites
-  const removeFavorite = (imageId) => {
-    const updatedFavorites = favorites.filter((fav) => fav.id !== imageId);
-    setFavorites(updatedFavorites);
-    localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-  };
-
   // open the modal
   const handleImageClick = (image) => {
     setSelectedImage(image);
   };
 
+
+
+  // Handle favorites
+  const handleFavorite = (image) => {
+    const updatedFavorites = favorites.some((fav) => fav.id === image.id)
+      ? favorites.filter((fav) => fav.id !== image.id)
+      : [...favorites, image];
+    setFavorites(updatedFavorites);
+    localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  };
   return (
     <>
       <AppBar position="sticky" sx={{ backgroundColor: "#00796b" }}>
@@ -61,52 +65,37 @@ const Favorites = () => {
           </Box>
         </Toolbar>
       </AppBar>
-      <div style={{ padding: "20px" }}>
-        {/*if no favorites are present */}
-        {favorites.length === 0 ? (
-          <Typography>No favorite images added yet.</Typography>
-        ) : (
-          <Grid container spacing={2}>
-            {favorites.map((image) => (
-              <Grid item xs={12} sm={6} md={4} key={image.id}>
-                <Box sx={{ position: "relative" }}>
+      {favorites.length === 0 ? (
+        <Typography>No favorite images added yet.</Typography>
+      ) : (
+        <Grid container spacing={2}>
+          {favorites.length === 0 ? (
+            <Typography>No favorite images added yet.</Typography>
+          ) : (
+            <ImageList variant="masonry" cols={3} gap={8}>
+              {favorites.map((image) => (
+                <>
                   <ImageCard
+                    key={image.id}
                     image={image}
                     isFavorite={true}
                     onClick={handleImageClick}
-                    onFavorite={removeFavorite}
+                    onFavorite={handleFavorite}
                   />
+          
+                </>
+              ))}
+            </ImageList>
+          )}
+        </Grid>
+      )}
 
-                  {/* Remove button  */}
-                  <IconButton
-                    onClick={() => removeFavorite(image.id)}
-                    sx={{
-                      zIndex: 10,
-                      position: "absolute",
-                      top: 10,
-                      right: 25,
-                      color: "white",
-                      backgroundColor: "rgba(0, 0, 0, 0.5)",
-                      "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.8)",
-                      },
-                    }}
-                  >
-                    <AiOutlineDelete size={24} />
-                  </IconButton>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-
-        {/* Image Modal */}
-        <ImageModal
-          image={selectedImage}
-          open={!!selectedImage} // Modal is open when there is a selected image
-          onClose={() => setSelectedImage(null)} // Close the modal
-        />
-      </div>
+      {/* Image Modal */}
+      <ImageModal
+        image={selectedImage}
+        open={!!selectedImage} // Modal is open when there is a selected image
+        onClose={() => setSelectedImage(null)} // Close the modal
+      />
     </>
   );
 };
